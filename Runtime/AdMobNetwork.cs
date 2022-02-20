@@ -99,6 +99,7 @@ namespace GameKit.AdMob
         
         private IEnumerator Initialize()
         {
+            IsInitialized = false;
             bool waitAdmob = true;
             MobileAds.Initialize((_)=> waitAdmob = false);
             while (waitAdmob) yield return null;
