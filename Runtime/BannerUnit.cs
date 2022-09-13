@@ -6,8 +6,9 @@ using GoogleMobileAds.Api;
 namespace GameKit.AdMob
 {
     [Serializable]
-    internal class BannerUnit : AdmobUnit<BannerView>, IAnchoredBannerAdUnit
+    internal class BannerUnit : AdmobUnit<BannerView>, ITopSmartBannerAdUnit, IBottomSmartBannerAdUnit
     {
+        private readonly AdPosition _position;
         public event Action EventClicked;
         
         protected override void Initialize()
@@ -39,6 +40,7 @@ namespace GameKit.AdMob
         public override bool Load(AdRequest request)
         {
             Instance = new BannerView(Key, AdSize.SmartBanner, AdPosition.Bottom);
+            Instance.SetPosition(_position);
             if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is loading");
             State = AdUnitState.Loading;
             Instance.LoadAd(request);
@@ -51,11 +53,6 @@ namespace GameKit.AdMob
             Instance.Show();
             base.Show();
         }
-        
-        public void SetAnchor(AdAnchor anchor)
-        {
-            Instance.SetPosition(anchor == AdAnchor.Top ? AdPosition.Top : AdPosition.Bottom);
-        }
 
         public void Hide()
         {
@@ -63,6 +60,9 @@ namespace GameKit.AdMob
             State = AdUnitState.Closed;
         }
 
-        public BannerUnit(AdUnitConfig config) : base(config) { }
+        public BannerUnit(AdUnitConfig config, AdPosition position) : base(config)
+        {
+            _position = position;
+        }
     }
 }

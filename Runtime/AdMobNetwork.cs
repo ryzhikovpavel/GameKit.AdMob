@@ -2,26 +2,30 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using GameKit.Ads;
 using GameKit.Ads.Networks;
 using GameKit.Ads.Units;
 using GoogleMobileAds.Api;
 using UnityEngine;
+// ReSharper disable RedundantExplicitArrayCreation
 
 namespace GameKit.AdMob
 {
     [CreateAssetMenu(fileName = "AdMobConfig", menuName = "GameKit/Ads/AdMob")]
     public class AdMobNetwork: ScriptableObject, IAdsNetwork
     {
+        private static ILogger Logger => Logger<AdMobNetwork>.Instance;
+        
         internal static int PauseDelay;
 
         private enum ContentFiltering
         {
             Unspecified,
             G,
-            PG,
+            Pg,
             T,
-            MA,
+            Ma,
         }
 
         [SerializeField] 
@@ -49,6 +53,16 @@ namespace GameKit.AdMob
         [Header("Extras")]
         [SerializeField]
         private bool testMode;
+        [SerializeField]
+        private bool initializeOnEditor;
+        [SerializeField] 
+        private bool enableInterstitial = true;
+        [SerializeField] 
+        private bool enableRewarded = true;
+        [SerializeField] 
+        private bool enableBannersTopPosition;
+        [SerializeField]
+        private bool enableBannersBottomPosition = true;
         
         [Header("Content ratings")] 
         [SerializeField] private TagForUnderAgeOfConsent tagForUnderAgeOfConsent;
@@ -73,42 +87,38 @@ namespace GameKit.AdMob
         
         private readonly Dictionary<Type, IAdUnit[]> _units = new Dictionary<Type,  IAdUnit[]>();
         private bool _trackingConsent;
-        private bool _purchasedDisableUnits;
-
-        public bool IsInitialized { get; private set; }
-        public bool IsValid { get; private set; }
+        
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void Registration()
         {
             var config = Resources.Load<AdMobNetwork>("AdMobConfig");
-            if (config.autoRegister)
+            if (config != null && config.autoRegister)
             {
+                if (Application.isEditor && config.initializeOnEditor == false) return;
+                
                 Service<AdsMediator>.Instance.RegisterNetwork(config);
-                Logger<AdMobNetwork>.Info("Registered");
+                Logger.Info("Registered");
             }
         }
         
-        public void Initialize(bool trackingConsent, bool purchasedDisableUnits)
+        public TaskRoutine Initialize(bool trackingConsent, bool intrusiveAdUnits)
         {
             _trackingConsent = trackingConsent;
-            _purchasedDisableUnits = purchasedDisableUnits;
             PauseDelay = pauseAfterFailedRequest;
-            Loop.StartCoroutine(Initialize());
+            return TaskRoutine.Run(Initialize(intrusiveAdUnits));
         }
         
-        private IEnumerator Initialize()
+        private IEnumerator Initialize(bool intrusiveAdUnits)
         {
-            IsInitialized = false;
             bool waitAdmob = true;
             MobileAds.Initialize((_)=> waitAdmob = false);
             while (waitAdmob) yield return null;
 
             var requestConfiguration = MobileAds.GetRequestConfiguration()?.ToBuilder() ?? new RequestConfiguration.Builder();
-            requestConfiguration.SetMaxAdContentRating(MaxAdContentRating.G);
             requestConfiguration.SetTagForUnderAgeOfConsent(tagForUnderAgeOfConsent);
             requestConfiguration.SetTagForChildDirectedTreatment(tagForChildDirectedTreatment);
-
+            
             switch (contentRating)
             {
                 case ContentFiltering.Unspecified:
@@ -117,13 +127,13 @@ namespace GameKit.AdMob
                 case ContentFiltering.G:
                     requestConfiguration.SetMaxAdContentRating(MaxAdContentRating.G);
                     break;
-                case ContentFiltering.PG:
+                case ContentFiltering.Pg:
                     requestConfiguration.SetMaxAdContentRating(MaxAdContentRating.PG);
                     break;
                 case ContentFiltering.T:
                     requestConfiguration.SetMaxAdContentRating(MaxAdContentRating.T);
                     break;
-                case ContentFiltering.MA:
+                case ContentFiltering.Ma:
                     requestConfiguration.SetMaxAdContentRating(MaxAdContentRating.MA);
                     break;
                 default:
@@ -132,51 +142,54 @@ namespace GameKit.AdMob
             
             MobileAds.SetRequestConfiguration(requestConfiguration.build());
             
-#if UNITY_ANDROID
-            PlatformConfig units = android;
-#elif UNITY_IOS
-            PlatformConfig units = ios;
-#else
-            PlatformConfig units = null;
-#endif
-            
-            if (testMode)
+            PlatformConfig units;
+            switch (Application.platform)
             {
-                InitializeTestUnits();
+                case RuntimePlatform.Android: units = android; break;
+                case RuntimePlatform.IPhonePlayer: units = iOS; break;
+                default: units = null; testMode = true; break;
             }
-            else
+
+            if (testMode) units = GetTestPlatform();
+
+            if (units is null)
             {
-                if (units is null) yield break;
+                if (Logger.IsErrorAllowed) Logger.Error("Units is null");
+                yield break;
+            }
 
-                if (units.interstitialUnits.Length > 0)
-                    _units.Add(typeof(IInterstitialAdUnit), InitializeUnits<InterstitialUnit>(units.interstitialUnits));
+            if (units.interstitialUnits.Length > 0 && enableInterstitial && intrusiveAdUnits)
+                _units.Add(typeof(IInterstitialAdUnit), InitializeUnits<InterstitialUnit>(units.interstitialUnits));
 
-                if (units.bannerUnits.Length > 0)
-                    _units.Add(typeof(IAnchoredBannerAdUnit), InitializeUnits<BannerUnit>(units.bannerUnits));
+            if (units.bannerUnits.Length > 0 && intrusiveAdUnits)
+            {
+                if (enableBannersTopPosition)
+                    _units.Add(typeof(ITopSmartBannerAdUnit), InitializeUnits<BannerUnit>(units.bannerUnits, AdPosition.Center));
+                if (enableBannersBottomPosition)
+                    _units.Add(typeof(IBottomSmartBannerAdUnit), InitializeUnits<BannerUnit>(units.bannerUnits, AdPosition.Bottom));
+            }
                 
-                if (units.rewardedUnits.Length > 0)
-                    _units.Add(typeof(IRewardedVideoAdUnit), InitializeUnits<RewardedUnit>(units.rewardedUnits));
-            }
+            if (units.rewardedUnits.Length > 0 && enableRewarded)
+                _units.Add(typeof(IRewardedVideoAdUnit), InitializeUnits<RewardedUnit>(units.rewardedUnits));
+            
 
             foreach (var banners in _units.Values)
             {
-                Loop.StartCoroutine(DownloadHandler(new List<AdmobUnit>(banners.Cast<AdmobUnit>())));
+                DownloadHandler(new List<AdmobUnit>(banners.Cast<AdmobUnit>()));
             }
             
-            if (_units.TryGetValue(typeof(IAnchoredBannerAdUnit), out var bannerUnits))
+            if (_units.TryGetValue(typeof(ITopSmartBannerAdUnit), out var bannerUnits))
                 // ReSharper disable once PossibleInvalidCastExceptionInForeachLoop
                 foreach (BannerUnit u in bannerUnits) u.EventClicked += StartPauseAfterClick;
-            
-            IsInitialized = true;
-            IsValid = true;
+            if (_units.TryGetValue(typeof(IBottomSmartBannerAdUnit), out bannerUnits))
+                // ReSharper disable once PossibleInvalidCastExceptionInForeachLoop
+                foreach (BannerUnit u in bannerUnits) u.EventClicked += StartPauseAfterClick;
         }
         
         private void StartPauseAfterClick()
         {
-            if (_units.TryGetValue(typeof(IAnchoredBannerAdUnit), out var units))
+            void AppendPause(IAdUnit[] units)
             {
-                if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"All banners paused after click on {pauseAfterBannerClicked} sec");
-                
                 // ReSharper disable once PossibleInvalidCastExceptionInForeachLoop
                 foreach (BannerUnit u in units)
                 {
@@ -185,50 +198,61 @@ namespace GameKit.AdMob
                         u.Release();
                 }
             }
+            
+            if (_units.TryGetValue(typeof(ITopSmartBannerAdUnit), out var banners)) AppendPause(banners);
+            if (_units.TryGetValue(typeof(IBottomSmartBannerAdUnit), out banners)) AppendPause(banners);
         }
         
-        private void InitializeTestUnits()
+        private PlatformConfig GetTestPlatform()
         {
-            #if UNITY_ANDROID
-            _units.Add(typeof(IAnchoredBannerAdUnit), new IAdUnit[]{
-                new BannerUnit(new AdUnitConfig() { name = "Test Banner 1", unitKey = "ca-app-pub-3940256099942544/6300978111" }),
-                new BannerUnit(new AdUnitConfig() { name = "Test Banner 2", unitKey = "ca-app-pub-3940256099942544/6300978111" })
-            });
-            
-            _units.Add(typeof(IInterstitialAdUnit), new IAdUnit[]{new InterstitialUnit(new AdUnitConfig()
-            {
-                name = "Test Interstitial",
-                unitKey = "ca-app-pub-3940256099942544/1033173712"
-            })});
-            
-            _units.Add(typeof(IRewardedVideoAdUnit), new IAdUnit[]{new RewardedUnit(new AdUnitConfig()
-            {
-                name = "Test Rewarded",
-                unitKey = "ca-app-pub-3940256099942544/5224354917"
-            })});
-            
-            #endif
-            
-            #if UNITY_IOS
+            var config = new PlatformConfig();
 
-            _units.Add(typeof(IAnchoredBannerAdUnit), new IAdUnit[]{
-                new BannerUnit(new AdUnitConfig() { name = "Test Banner 1", unitKey = "ca-app-pub-3940256099942544/2934735716" }),
-                new BannerUnit(new AdUnitConfig() { name = "Test Banner 2", unitKey = "ca-app-pub-3940256099942544/2934735716" })
-            });
-            
-            _units.Add(typeof(IInterstitialAdUnit), new IAdUnit[]{new BannerUnit(new AdUnitConfig()
+            switch (Application.platform)
             {
-                name = "Test Interstitial",
-                unitKey = "ca-app-pub-3940256099942544/4411468910"
-            })});
-            
-            _units.Add(typeof(IRewardedVideoAdUnit), new IAdUnit[]{new RewardedUnit(new AdUnitConfig()
-            {
-                name = "Test Rewarded",
-                unitKey = "ca-app-pub-3940256099942544/1712485313"
-            })});
-            
-            #endif
+                case RuntimePlatform.Android:
+                    config.bannerUnits = new AdUnitConfig[]
+                    {
+                        new AdUnitConfig() { name = "Test Banner 1", unitKey = "ca-app-pub-3940256099942544/6300978111" },
+                        new AdUnitConfig() { name = "Test Banner 2", unitKey = "ca-app-pub-3940256099942544/6300978111" }
+                    };
+
+                    config.interstitialUnits = new AdUnitConfig[]
+                    {
+                        new AdUnitConfig() { name = "Test Interstitial", unitKey = "ca-app-pub-3940256099942544/1033173712" }
+                    };
+
+                    config.rewardedUnits = new AdUnitConfig[]
+                    {
+                        new AdUnitConfig() { name = "Test Rewarded", unitKey = "ca-app-pub-3940256099942544/5224354917" }
+                    };    
+                    break;
+                case RuntimePlatform.IPhonePlayer:
+                    config.bannerUnits = new AdUnitConfig[]
+                    {
+                        new AdUnitConfig() { name = "Test Banner 1", unitKey = "ca-app-pub-3940256099942544/2934735716" },
+                        new AdUnitConfig() { name = "Test Banner 2", unitKey = "ca-app-pub-3940256099942544/2934735716" }
+                    };
+
+                    config.interstitialUnits = new AdUnitConfig[]
+                    {
+                        new AdUnitConfig() { name = "Test Interstitial", unitKey = "ca-app-pub-3940256099942544/4411468910" }
+                    };
+
+                    config.rewardedUnits = new AdUnitConfig[]
+                    {
+                        new AdUnitConfig() { name = "Test Rewarded", unitKey = "ca-app-pub-3940256099942544/1712485313" }
+                    };  
+                    break;
+                default:
+                    // ReSharper disable UseArrayEmptyMethod
+                    config.bannerUnits = new AdUnitConfig[0];
+                    config.interstitialUnits = new AdUnitConfig[0];
+                    config.rewardedUnits = new AdUnitConfig[0];
+                    // ReSharper restore UseArrayEmptyMethod
+                    break;
+            }
+
+            return config;
         }
         
         private IAdUnit[] InitializeUnits<TUnit>(AdUnitConfig[] configs) where TUnit: AdmobUnit
@@ -244,11 +268,20 @@ namespace GameKit.AdMob
             return units.ToArray();
         }
         
-        public void DisableUnits()
+        private IAdUnit[] InitializeUnits<TUnit>(AdUnitConfig[] configs, AdPosition position) where TUnit: BannerUnit
         {
-
+            List<IAdUnit> units = new List<IAdUnit>();
+            foreach (var config in configs)
+            {
+                if (string.IsNullOrEmpty(config.name)) config.name = typeof(TUnit).Name;
+                var unit = (TUnit)Activator.CreateInstance(typeof(TUnit), config, position);
+                unit.EventClicked += StartPauseAfterClick;
+                units.Add(unit);
+            }
+            
+            return units.ToArray();
         }
-
+        
         public bool IsSupported(Type type) => _units.ContainsKey(type);
         public IAdUnit[] GetUnits(Type type) => _units[type];
         
@@ -265,21 +298,19 @@ namespace GameKit.AdMob
             return b.Build();
         }
         
-        private IEnumerator DownloadHandler(List<AdmobUnit> units)
+        private async void DownloadHandler(List<AdmobUnit> units)
         {
+            if (Logger.IsDebugAllowed) Logger.Debug("Start download handler");
             units.Sort((a,b)=>a.Config.priceFloor.CompareTo(b.Config.priceFloor));
             
             int attempt = 0;
 
             var request = GetRequest();
-            var delay = new WaitForSecondsRealtime(delayBetweenRequest);
 
             var last = units.Last();
             last.Load(request);
 
-            yield return null;
-
-            while (Loop.IsQuitting == false)
+            while (Application.isPlaying)
             {
                 var count = 0;
                 foreach (var u in units)
@@ -301,7 +332,7 @@ namespace GameKit.AdMob
                     if (last == u) attempt++;
                 }
 
-                yield return delay;
+                await Task.Delay(delayBetweenRequest * 1000);
             }
         }
     }
