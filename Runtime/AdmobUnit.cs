@@ -86,14 +86,14 @@ namespace GameKit.AdMob
             Error = e.LoadAdError.GetMessage();
             State = AdUnitState.Error;
             PauseUntilTime = DateTime.Now.AddSeconds(AdMobNetwork.PauseDelay);
-            if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} load failed");
+            if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} load failed with error: {Error}");
         }
         
         protected virtual void OnAdFailedToShow(object sender, AdErrorEventArgs e)
         {
             Error = e.AdError.GetMessage();
             State = AdUnitState.Error;
-            if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is show failed");
+            if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is show failed with error: {Error}");
         }
 
         protected AdmobUnit(AdUnitConfig config) : base(config) { }
