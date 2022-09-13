@@ -1,0 +1,22 @@
+{
+  "name": "gamekit.admob",
+  "displayName": "GameKit.AdMob",
+  "description": "",
+  "version": "7.2.0",
+  "unity": "2021.3",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryzhikovpavel/GameKit.AdMob.git"
+  },
+  "author": {
+    "name": "ryzhikovpavel",
+    "email": "",
+    "url": "https://github.com/ryzhikovpavel"
+  },
+  "dependencies": {},
+  "keywords": [
+    "gamekit",
+	"ads"
+  ]  
+}
