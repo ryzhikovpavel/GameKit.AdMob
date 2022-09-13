@@ -32,5 +32,10 @@ public class BuildPreProcessor : IPreprocessBuild
         {
             AssetDatabase.CopyAsset("Packages/com.google.ads.mobile/GoogleMobileAds/link.xml", "Assets/GoogleMobileAds/link.xml");
         }
+        
+        if (AssetDatabase.IsValidFolder("Packages/gamekit.admob"))
+        {
+            AssetDatabase.CopyAsset("Packages/gamekit.admob/GoogleMobileAds/link.xml", "Assets/GoogleMobileAds/link.xml");
+        }
     }
 }
