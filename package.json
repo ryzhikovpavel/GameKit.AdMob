@@ -14,7 +14,9 @@
     "email": "",
     "url": "https://github.com/ryzhikovpavel"
   },
-  "dependencies": {},
+  "dependencies": {
+    "gamekit.core": "1.0.0"
+  },
   "keywords": [
     "gamekit",
 	"ads"
