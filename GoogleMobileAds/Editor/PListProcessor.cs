@@ -102,6 +102,11 @@ public static class PListProcessor
             path = Path.Combine("Packages/com.google.ads.mobile", SKADNETWORKS_RELATIVE_PATH);
         }
 
+        if (AssetDatabase.IsValidFolder("Packages/gamekit.admob"))
+        {
+            path = Path.Combine("Packages/gamekit.admob", SKADNETWORKS_RELATIVE_PATH);
+        }
+
         try
         {
             if (!File.Exists(path))
