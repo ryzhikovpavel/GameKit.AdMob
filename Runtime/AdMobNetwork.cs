@@ -30,6 +30,8 @@ namespace GameKit.AdMob
 
         [SerializeField] 
         private bool autoRegister = true;
+        [SerializeField]
+        private LogType debugLevel = LogType.Important;
         
         [SerializeField, Range(1, 3)]
         [Tooltip("Required number of simultaneously loaded banners")]
@@ -98,6 +100,7 @@ namespace GameKit.AdMob
                 if (Application.isEditor && config.initializeOnEditor == false) return;
                 
                 Service<AdsMediator>.Instance.RegisterNetwork(config);
+                Logger.SetAllowed(config.debugLevel);
                 Logger.Info("Registered");
             }
         }
