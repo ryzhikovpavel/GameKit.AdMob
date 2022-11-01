@@ -30,8 +30,9 @@ namespace GameKit.AdMob
 
         [SerializeField] 
         private bool autoRegister = true;
-        [SerializeField]
-        private LogType debugLevel = LogType.Important;
+
+        [SerializeField] 
+        private UnityEngine.LogType debugLevel = UnityEngine.LogType.Warning;
         
         [SerializeField, Range(1, 3)]
         [Tooltip("Required number of simultaneously loaded banners")]
@@ -100,7 +101,22 @@ namespace GameKit.AdMob
                 if (Application.isEditor && config.initializeOnEditor == false) return;
                 
                 Service<AdsMediator>.Instance.RegisterNetwork(config);
-                Logger.SetAllowed(config.debugLevel);
+                switch (config.debugLevel)
+                {
+                    case UnityEngine.LogType.Log:
+                        Logger.SetAllowed(LogType.Normal);
+                        break;
+                    case UnityEngine.LogType.Warning:
+                        Logger.SetAllowed(LogType.Important);
+                        break;
+                    case UnityEngine.LogType.Assert:
+                    case UnityEngine.LogType.Error:
+                    case UnityEngine.LogType.Exception:
+                        Logger.SetAllowed(LogType.Error);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
                 Logger.Info("Registered");
             }
         }
