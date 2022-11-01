@@ -143,7 +143,7 @@ namespace GameKit.AdMob
             MobileAds.SetRequestConfiguration(requestConfiguration.build());
             
             PlatformConfig units;
-            switch (Application.platform)
+            switch (GetPlatform())
             {
                 case RuntimePlatform.Android: units = android; break;
                 case RuntimePlatform.IPhonePlayer: units = iOS; break;
@@ -171,7 +171,6 @@ namespace GameKit.AdMob
                 
             if (units.rewardedUnits.Length > 0 && enableRewarded)
                 _units.Add(typeof(IRewardedVideoAdUnit), InitializeUnits<RewardedUnit>(units.rewardedUnits));
-            
 
             foreach (var banners in _units.Values)
             {
@@ -207,7 +206,7 @@ namespace GameKit.AdMob
         {
             var config = new PlatformConfig();
 
-            switch (Application.platform)
+            switch (GetPlatform())
             {
                 case RuntimePlatform.Android:
                     config.bannerUnits = new AdUnitConfig[]
@@ -301,7 +300,7 @@ namespace GameKit.AdMob
         private async void DownloadHandler(List<AdmobUnit> units)
         {
             if (Logger.IsDebugAllowed) Logger.Debug("Start download handler");
-            units.Sort((a,b)=>a.Config.priceFloor.CompareTo(b.Config.priceFloor));
+            units.Sort((a,b)=>b.Config.priceFloor.CompareTo(a.Config.priceFloor));
             
             int attempt = 0;
 
@@ -334,6 +333,17 @@ namespace GameKit.AdMob
 
                 await Task.Delay(delayBetweenRequest * 1000);
             }
+        }
+
+        private RuntimePlatform GetPlatform()
+        {
+#if UNITY_ANDROID
+            return RuntimePlatform.Android;
+#elif UNITY_IOS
+            return RuntimePlatform.IPhonePlayer;
+#else
+            return Application.platform;
+#endif
         }
     }
 }
