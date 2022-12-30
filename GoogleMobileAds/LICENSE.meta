@@ -1,9 +1,9 @@
 fileFormatVersion: 2
-guid: 1c0d8a6c9b36440eaa4c01518670217f
+guid: DCED4676809D4FD080DC99CC6B32B2AB
 labels:
 - gvh
 - gvh_version-7.3.1
-- gvhp_exportpath-Plugins/iOS/GADUAdNetworkExtras.h
+- gvhp_exportpath-GoogleMobileAds/LICENSE
 timeCreated: 1480838400
 PluginImporter:
   serializedVersion: 1
@@ -19,35 +19,35 @@ PluginImporter:
       enabled: 0
       settings: {}
     Editor:
-      enabled: 1
+      enabled: 0
       settings:
         CPU: AnyCPU
         DefaultValueInitialized: true
         OS: AnyOS
     Linux:
-      enabled: 1
+      enabled: 0
       settings:
-        CPU: x86
+        CPU: None
     Linux64:
-      enabled: 1
+      enabled: 0
       settings:
-        CPU: x86_64
+        CPU: None
     LinuxUniversal:
-      enabled: 1
+      enabled: 0
       settings:
-        CPU: AnyCPU
+        CPU: None
     OSXIntel:
-      enabled: 1
+      enabled: 0
       settings:
-        CPU: x86
+        CPU: None
     OSXIntel64:
-      enabled: 1
+      enabled: 0
       settings:
-        CPU: x86_64
+        CPU: None
     OSXUniversal:
-      enabled: 1
+      enabled: 0
       settings:
-        CPU: AnyCPU
+        CPU: None
     Web:
       enabled: 0
       settings: {}
@@ -55,19 +55,19 @@ PluginImporter:
       enabled: 0
       settings: {}
     Win:
-      enabled: 1
+      enabled: 0
       settings:
-        CPU: x86
+        CPU: None
     Win64:
-      enabled: 1
+      enabled: 0
       settings:
-        CPU: x86_64
+        CPU: None
     WindowsStoreApps:
       enabled: 0
       settings:
         CPU: AnyCPU
     iOS:
-      enabled: 1
+      enabled: 0
       settings:
         CompileFlags:
         FrameworkDependencies:
