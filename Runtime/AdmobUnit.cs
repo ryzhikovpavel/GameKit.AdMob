@@ -47,7 +47,6 @@ namespace GameKit.AdMob
             get { return _instance; }
             set
             {
-                if (_instance != null) Release();
                 _instance = value;
                 if (_instance is null == false) Initialize();
             }
@@ -95,6 +94,7 @@ namespace GameKit.AdMob
             }
             else
             {
+                if (Instance != null) Release();
                 Instance = instance;
                 OnAdLoaded();
             }

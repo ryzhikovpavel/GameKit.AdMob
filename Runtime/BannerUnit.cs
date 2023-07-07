@@ -42,6 +42,7 @@ namespace GameKit.AdMob
 
         public override bool Load(AdRequest request)
         {
+            if (Instance != null) Release();
             if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is loading");
             Instance = new BannerView(Key, AdSize.SmartBanner, _position);
             //Instance.SetPosition(_position);
