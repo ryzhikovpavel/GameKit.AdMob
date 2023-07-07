@@ -47,6 +47,7 @@ namespace GameKit.AdMob
             get { return _instance; }
             set
             {
+                if (_instance != null) Release();
                 _instance = value;
                 if (_instance is null == false) Initialize();
             }
@@ -55,47 +56,48 @@ namespace GameKit.AdMob
         private T _instance;
 
         protected abstract void Initialize();
-        
-        protected virtual void OnAdClosed(object sender, EventArgs eventArgs)
+        protected virtual void OnAdClosed()
         {
             State = AdUnitState.Closed;
             if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is closed");
         }
 
-        protected virtual void OnAdLoaded(object sender, EventArgs eventArgs)
+        protected virtual void OnAdLoaded()
         {
             State = AdUnitState.Loaded;
             Attempt = -1;
             if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is loaded");
         }
 
-        protected virtual void OnAdClicked(object sender, EventArgs eventArgs)
+        protected virtual void OnAdFailedToLoad(LoadAdError error)
         {
-            State = AdUnitState.Clicked;
-            if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is clicked");
-        }
-        
-        protected virtual void OnAdDisplayed(object sender, EventArgs eventArgs)
-        {
-            State = AdUnitState.Displayed;
-            if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is Displayed");
-        }
-        
-        protected virtual void OnAdFailedToLoad(object sender, AdFailedToLoadEventArgs e)
-        {
-            Error = e.LoadAdError.GetMessage();
+            Error = error.GetMessage();
             State = AdUnitState.Error;
             PauseUntilTime = DateTime.Now.AddSeconds(AdMobNetwork.PauseDelay);
             if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} load failed with error: {Error}");
         }
-        
-        protected virtual void OnAdFailedToShow(object sender, AdErrorEventArgs e)
+
+        protected virtual void OnAdFailedToShow(AdError error)
         {
-            Error = e.AdError.GetMessage();
+            Error = error.GetMessage();
             State = AdUnitState.Error;
             if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is show failed with error: {Error}");
-        }
 
+        }
+        
         protected AdmobUnit(AdUnitConfig config) : base(config) { }
+
+        protected void OnLoadCompleted(T instance, LoadAdError error)
+        {
+            if (instance == null || error != null)
+            {
+                OnAdFailedToLoad(error);
+            }
+            else
+            {
+                Instance = instance;
+                OnAdLoaded();
+            }
+        }
     }
 }

@@ -13,35 +13,38 @@ namespace GameKit.AdMob
         
         protected override void Initialize()
         {
-            Instance.OnAdClosed += OnAdClosed;
-            Instance.OnAdLoaded += OnAdLoaded;
-            Instance.OnAdFailedToLoad += OnAdFailedToLoad;
-            Instance.OnAdOpening += OnAdClicked;
+            Instance.OnAdFullScreenContentClosed += OnAdClosed;
+            Instance.OnBannerAdLoaded += OnAdLoaded;
+            Instance.OnBannerAdLoadFailed += OnAdFailedToLoad;
+            Instance.OnAdClicked += OnAdClicked;
         }
-        
-        protected override void OnAdClicked(object sender, EventArgs eventArgs)
-        {
-            base.OnAdClicked(sender, eventArgs);
-            EventClicked?.Invoke();
-        }
-        
+
         public override void Release()
         {
+            if (Instance is not null)
+            {
+                Instance.OnAdFullScreenContentClosed -= OnAdClosed;
+                Instance.OnBannerAdLoaded -= OnAdLoaded;
+                Instance.OnBannerAdLoadFailed -= OnAdFailedToLoad;
+                Instance.OnAdClicked -= OnAdClicked;
+                Instance.Destroy();
+                Instance = null;
+            }
+
             base.Release();
-            if (Instance is null) return;
-            Instance.OnAdClosed -= OnAdClosed;
-            Instance.OnAdLoaded -= OnAdLoaded;
-            Instance.OnAdFailedToLoad -= OnAdFailedToLoad;
-            Instance.OnAdOpening -= OnAdClicked;
-            Instance.Destroy();
-            Instance = null;
+        }
+
+        protected void OnAdClicked()
+        {
+            State = AdUnitState.Clicked;
+            EventClicked?.Invoke();
         }
 
         public override bool Load(AdRequest request)
         {
-            Instance = new BannerView(Key, AdSize.SmartBanner, AdPosition.Bottom);
-            Instance.SetPosition(_position);
             if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is loading");
+            Instance = new BannerView(Key, AdSize.SmartBanner, _position);
+            //Instance.SetPosition(_position);
             State = AdUnitState.Loading;
             Instance.LoadAd(request);
             Instance.Hide();
@@ -50,8 +53,8 @@ namespace GameKit.AdMob
 
         public override void Show()
         {
-            Instance.Show();
             base.Show();
+            Instance.Show();
         }
 
         public void Hide()

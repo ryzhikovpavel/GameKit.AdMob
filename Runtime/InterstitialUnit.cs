@@ -9,38 +9,34 @@ namespace GameKit.AdMob
     {
         protected override void Initialize()
         {
-            Instance.OnAdClosed += OnAdClosed;
-            Instance.OnAdLoaded += OnAdLoaded;
-            Instance.OnAdFailedToLoad += OnAdFailedToLoad;
-            Instance.OnAdFailedToShow += OnAdFailedToShow;
-            Instance.OnAdOpening += OnAdDisplayed;
+            Instance.OnAdFullScreenContentClosed += OnAdClosed;
+            Instance.OnAdFullScreenContentFailed += OnAdFailedToShow;
         }
         
         public override void Release()
         {
+            if (Instance != null)
+            {
+                Instance.OnAdFullScreenContentClosed -= OnAdClosed;
+                Instance.OnAdFullScreenContentFailed -= OnAdFailedToShow;
+                Instance.Destroy();
+                Instance = null;
+            }
+
             base.Release();
-            if (Instance == null) return;
-            Instance.OnAdClosed -= OnAdClosed;
-            Instance.OnAdLoaded -= OnAdLoaded;
-            Instance.OnAdFailedToLoad -= OnAdFailedToLoad;
-            Instance.OnAdFailedToShow -= OnAdFailedToShow;
-            Instance.OnAdOpening -= OnAdDisplayed;
-            Instance.Destroy();
-            Instance = null;
         }
 
         public override bool Load(AdRequest request)
         {
-            Instance = new InterstitialAd(Key);
             if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is loading");
             State = AdUnitState.Loading;
-            Instance.LoadAd(request);
+            InterstitialAd.Load(Key, request, OnLoadCompleted);
             return true;
         }
-        
+
         public override void Show()
         {
-            if (Logger<AdMobNetwork>.IsDebugAllowed) Logger<AdMobNetwork>.Debug($"{Name} is showing");
+            base.Show();
             Instance.Show();
         }
 
