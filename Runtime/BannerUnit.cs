@@ -1,5 +1,4 @@
 ﻿using System;
-using GameKit.Ads;
 using GameKit.Ads.Units;
 using GoogleMobileAds.Api;
 
