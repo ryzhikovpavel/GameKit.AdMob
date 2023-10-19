@@ -1,6 +1,81 @@
 Google Mobile Ads Unity Plugin Change Log
 
 **************
+Version 8.5.2
+**************
+
+- Fixed AndroidJavaException when using AdManagerAdRequest custom targeting.
+- Fixed [#2826] "No such proxy method" error within GoogleMobileAds.Ump.
+
+Built and tested with:
+- Google Mobile Ads Android SDK 22.3.0
+- Google Mobile Ads iOS SDK 10.9
+- Google User Messaging Platform 2.1.0
+- External Dependency Manager for Unity 1.2.176
+
+**************
+Version 8.5.1
+**************
+
+- Version 8.5.0 has been deprecated. Please upgrade to 8.5.1 instead.
+- Fixed [#2866] Read enum from getPrivacyOptionsRequirementStatus.
+- Removed double quotes from GoogleMobileAdsSKAdNetworkItems.xml.
+
+Built and tested with:
+- Google Mobile Ads Android SDK 22.2.0
+- Google Mobile Ads iOS SDK 10.9
+- Google User Messaging Platform 2.1.0
+- External Dependency Manager for Unity 1.2.176
+
+**************
+Version 8.5.0
+**************
+
+- Requires apps to build against Xcode 14.1 or higher.
+- This release introduces several new APIs to simplify the consent gathering
+  process.
+    - Calling `ConsentInformation.Update()` is now required before interacting
+      with other `ConsentInformation` public APIs. Before calling it, the following are returned:
+        - `ConsentStatus` returns `ConsentStatus.Unknown`
+        - `PrivacyOptionsRequirementStatus` returns
+          `PrivacyOptionsRequirementStatus.Unknown`
+        - `ConsentInformation.CanRequestAds` returns `false`.
+    - [ConsentForm](https://github.com/googleads/googleads-mobile-unity/blob/main/source/plugin/Assets/GoogleMobileAds/Ump/Api/ConsentForm.cs)
+        - Added method `LoadAndPresentIfRequired` to combine load and show calls.
+          This method is intended for the use case of showing a form if needed
+          when the app starts.
+        - Added method `ShowPrivacyOptionsForm`, to be called when users interact
+          with your app's privacy setting.
+    - [ConsentInformation](https://github.com/googleads/googleads-mobile-unity/blob/main/source/plugin/Assets/GoogleMobileAds/Ump/Api/ConsentInformation.cs)
+        - Added `CanRequestAds` property.
+        - Added `PrivacyOptionsRequirementStatus` property to indicate whether
+          privacy options are required to be shown in this session.
+- Updated the Android User Messaging Platform dependency version to 2.1.0.
+- Updated the Google Mobile Ads iOS SDK dependency version to 10.9.
+- Fixed [#2840] Check if the ad references get deallocated in the iOS
+  plugin (bridge).
+- Updated [SKAdNetwork](https://developers.google.com/admob/unity/3p-skadnetworks)
+  list with values from the July 13, 2023 update.
+
+Built and tested with:
+- Google Mobile Ads Android SDK 22.2.0
+- Google Mobile Ads iOS SDK 10.9
+- Google User Messaging Platform 2.1.0
+- External Dependency Manager for Unity 1.2.176
+
+**************
+Version 8.4.1
+**************
+
+- Fixed [#2815] Setting ApplicationPreferences on Android.
+
+Built and tested with:
+- Google Mobile Ads Android SDK 22.2.0
+- Google Mobile Ads iOS SDK 10.7
+- Google User Messaging Platform 2.0.0
+- External Dependency Manager for Unity 1.2.176
+
+**************
 Version 8.4.0
 **************
 
@@ -274,6 +349,7 @@ Version 6.0.2
 
 Plugin:
 - Fixed https://github.com/googleads/googleads-mobile-unity/issues/1677 This version requires Xcode 12.4 where the previous version required Xcode 12.5.1.
+- You no longer need to enable "Link frameworks statically" for the Google Mobile Ads plugin to work.
 
 Built and tested with:
 - Google Play services 20.2.0
